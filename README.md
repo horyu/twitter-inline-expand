@@ -11,7 +11,7 @@ __<a href="twitter-orig.user.js?raw=true">Install Link</a>__
 * inline-expansion of `:orig` full-resolution twitter images
 * download links for videos
 * keyboard navigation
-  * "w", "ArrowUp", "s", "ArrowDown" : Navigate between posts with images
+  * "w", "ArrowUp", "s", "ArrowDown" : Navigate between posts with images
   * "q", " " : Expand images in focused tweet
   * "e" : Download
 * may also work on mobile.twitter.com and tweetdeck
