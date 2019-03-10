@@ -1,11 +1,11 @@
 // ==UserScript==
 // @name        Twitter Inline Expansion
-// @namespace   https://github.com/an-electric-sheep/
+// @namespace   https://github.com/horyu
 // @description Inline-expansion of :orig (full-resolution) twitter images
 // @include     https://twitter.com/*
 // @include     https://mobile.twitter.com/*
 // @include     https://tweetdeck.twitter.com/*
-// @version     0.4.0
+// @version     0.4.1
 // @run-at      document-start
 // @noframes
 // @grant       unsafeWindow
