@@ -49,14 +49,14 @@ function mutationObserverCallback(mutations) {
 	try {
 		for(let mutation of mutations) {
 			if(mutation.type != "childList")
-			continue;
+				continue;
 			for(let node of [mutation.target, ...mutation.addedNodes]) {
 				if(node.nodeType != Node.ELEMENT_NODE)
-				continue;
+					continue;
 
 				onAddedNode(node);
 				for(let subNode of node.querySelectorAll(TweetImageSelector))
-				onAddedNode(subNode);
+					onAddedNode(subNode);
 			}
 		}
 	} catch(e) {
@@ -67,7 +67,7 @@ function mutationObserverCallback(mutations) {
 function onAddedNode(node) {
 	if(node.matches(TweetImageSelector)) {
 		visitOnce(node, () => {
-			addImageControls(node.closest(".tweet, .Tweet, .js-stream-item-content"),node);
+			addImageControls(node.closest(".tweet, .Tweet, .js-stream-item-content"), node);
 		});
 	}
 }
@@ -193,7 +193,7 @@ function thumbToggle(link) {
 	let img = link.querySelector("img");
 
 	return new Promise((res, rej) => {
-  	if(link.classList.contains(prefixed("-expanded"))) {
+		if(link.classList.contains(prefixed("-expanded"))) {
 			img.src = link.dataset[cssPrefix + "Small"];
 			link.classList.add(prefixed("-thumb"));
 			link.classList.remove(prefixed("-expan;ded"));
@@ -219,17 +219,17 @@ function thumbToggle(link) {
 
 function keyboardNav(e) {
 	// skip keyboard events when in inputs
-	if (e.target.isContentEditable || ("selectionStart" in document.activeElement))
+	if(e.target.isContentEditable || ("selectionStart" in document.activeElement))
 		return;
 
 	let focus = null;
 	let prevent = false;
-	if (e.key == "w" || e.key == "ArrowUp" ) {
+	if(e.key == "w" || e.key == "ArrowUp" ) {
 		focus = moveFocus(-1);
 		prevent = true;
 	}
 
-	if (e.key == "s" || e.key == "ArrowDown" ) {
+	if(e.key == "s" || e.key == "ArrowDown" ) {
 		focus = moveFocus(1);
 		prevent = true;
 	}
