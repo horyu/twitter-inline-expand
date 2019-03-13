@@ -5,11 +5,10 @@
 // @include     https://twitter.com/*
 // @include     https://mobile.twitter.com/*
 // @include     https://tweetdeck.twitter.com/*
-// @version     0.4.1
+// @version     0.4.2
 // @run-at      document-start
 // @noframes
-// @grant       unsafeWindow
-// @grant       GM_xmlhttpRequest
+// @grant       none
 // ==/UserScript==
 
 'use strict';
@@ -22,8 +21,6 @@ const TweetImageSelector = `
 	.Tweet .CroppedPhoto img ,
 	.js-stream-item-content a.js-media-image-link
 `;
-
-const TweetVideoSelector = ".AdaptiveMedia-video iframe";
 
 let alreadyVisited = new WeakSet();
 
@@ -43,8 +40,6 @@ function mutationObserverCallback(mutations) {
 					continue;
 
 				onAddedNode(node);
-				for(let subNode of node.querySelectorAll(TweetVideoSelector))
-					onAddedNode(subNode);
 				for(let subNode of node.querySelectorAll(TweetImageSelector))
 					onAddedNode(subNode);
 			}
@@ -65,13 +60,6 @@ function onAddedNode(node) {
 	if(node.matches(TweetImageSelector)) {
 		visitOnce(node, () => {
 			addImageControls(node.closest(".tweet, .Tweet, .js-stream-item-content"),node);
-		});
-	}
-
-	if(node.matches(TweetVideoSelector)) {
-		// we match an iframe here.once on the parent because iframes get reloaded when scrolling
-		visitOnce(node.parentElement, () => {
-			addVideoControls(node.closest(".tweet"), node);
 		});
 	}
 }
@@ -101,169 +89,6 @@ function addImageControls(tweetContainer, image) {
 	div.insertAdjacentHTML("beforeend", `
 		<a class="${cssPrefix}-orig-link ${cssPrefix}-thumb" data-${cssPrefix}-small="${src}" href="${origSrc}"><img src="${src}"></a>
 	`);
-}
-
-const supportedContentTypes = [
-	{
-		// https://twitter.com/age_jaco/status/623712731456122881/photo/1
-		matcher: (config) => config.content_type == "video/mp4",
-		ext: "mp4",
-		loader:	fetchMP4
-	},
-	{
-		// https://twitter.com/MrNobre/status/754144048529625088
-		matcher: (config) => config.content_type == "application/x-mpegURL",
-		ext: "ts",
-		loader: fetchMpegTs
-	},
-	{
-		// https://twitter.com/mkraju/status/755368535619145728
-		matcher: (config) => "vmap_url" in config,
-		ext: "mp4",
-		loader: fetchVmap
-	}
-];
-
-// can't use fetch() API here since it's blocked by CSP
-function fetchVmap(configPromise) {
-	return configPromise.then(config => {
-		return new Promise((resolve, reject) => {
-			GM_xmlhttpRequest({
-				method: "GET",
-				url: config.vmap_url,
-				responseType: "xml",
-				anonymous: true,
-				onload: (rsp) => { resolve(rsp.responseXML); },
-				onerror: (e) => { reject(e); }
-			});
-		});
-	}).then(xmlDoc => {
-		let url = xmlDoc.querySelector("*|MediaFile").textContent;
-		return new Promise((resolve, reject) => {
-			GM_xmlhttpRequest({
-				method: "GET",
-				url: url,
-				responseType: "blob",
-				anonymous: true,
-				onload: (rsp) => { resolve(rsp.response); },
-				onerror: (e) => { reject(e); }
-			});
-		});
-	});
-}
-
-function fetchMpegTs(configPromise) {
-	let baseURL = null;
-
-	return configPromise.then(config => {
-		baseURL = config.video_url;
-
-		return fetch(config.video_url, {redirect: "follow", mode: "cors"}).then((response) => {
-			return response.text();
-		});
-	}).then((playlist) => {
-		let highestResolution = playlist.split(/\n/).filter(str => !str.startsWith("#")).filter(str => str.length > 0).pop();
-		let fetchUrl = new URL(baseURL);
-		fetchUrl.pathname = highestResolution;
-		return fetch(fetchUrl, {mode: "cors", redirects: "follow"});
-	}).then((response) => {
-		return response.text();
-	}).then((chunkList) => {
-		return chunkList.split(/\n/).filter(s => !s.startsWith("#")).filter(s => s.length > 0).map(chunk => {
-			let u = new URL(baseURL);
-			u.pathname = chunk;
-			return u;
-		});
-	}).then((urls) => {
-		return Promise.all(urls.map(u => {
-			return fetch(u.toString(), {mode: "cors", redirects: "follow"}).then(response => response.blob());
-		}));
-	}).then(blobs => {
-			return new Blob(blobs);
-	});
-}
-
-function fetchMP4(configPromise) {
-	return configPromise.then(config => {
-		return fetch(config.video_url, {redirect: "follow", mode: "cors"}).then(response => response.blob());
-	});
-}
-
-
-function addVideoControls(tweetContainer, iframe) {
-	let mediaConfig = null;
-
-	let configPromise = new Promise((resolve, reject) => {
-		if(iframe.contentDocument.readyState == "interactive" || iframe.contentDocument.readyState == "complete") {
-			resolve(iframe.contentDocument);
-			return;
-		}
-
-		iframe.addEventListener("load", () => resolve(iframe.contentDocument));
-	}).then((contentDoc) => {
-		let config = JSON.parse(contentDoc.querySelector(".player-container").dataset.config);
-
-		mediaConfig = config;
-
-		console.log(config);
-
-		if(!supportedContentTypes.find(t => t.matcher(config)))
-			throw new Error(`unknown video configuration, unable to fetch data`);
-
-		return config;
-	});
-
-	const controls = controlContainer(tweetContainer);
-
-	controls.insertAdjacentHTML("beforeend", `
-		<a download="${Date.now()}.ts" href="#">download</a><span class="${cssPrefix}-progress"></span>
-	`);
-
-	let finalBlob = null;
-	const link = controls.querySelector("a[download]");
-
-	let exceptionHandler = (message) => {
-		return (exception) => {
-			controls.insertAdjacentHTML("beforeend", `
-				<span class="${cssPrefix}-error">
-					${message}:
-					${exception.toString()}
-				</span>
-			`);
-		};
-	};
-
-	configPromise.catch(exceptionHandler("An error occured while reading the video metadata"));
-
-	configPromise.then(config => {
-		const type = supportedContentTypes.find(t => t.matcher(config));
-
-		let filename = `@${config.user.screen_name} ${config.tweet_id}.${type.ext}`;
-		link.download = filename;
-		link.appendChild(document.createTextNode(": " + filename));
-	});
-
-
-	link.addEventListener("click", (e) => {
-		if(finalBlob != null)
-			return;
-
-		e.preventDefault();
-
-		configPromise.then(config => {
-			const type = supportedContentTypes.find(t => t.matcher(config));
-			return type.loader(configPromise);
-
-		}).then(blob => {
-			finalBlob = blob;
-
-			link.href = URL.createObjectURL(finalBlob);
-
-			// fire new click event since we prevent-defaulted it earlier
-			link.click();
-		}).catch(exceptionHandler("An error occurred while downloading the video"));
-
-	});
 }
 
 let observer = null;
@@ -405,45 +230,11 @@ function keyboardNav(e) {
 		prevent = true;
 	}
 
-	if(focus) {
+	if(focus) 
 		setFocus(focus);
-	}
-
-	if (e.key == "e") {
-		let cf = currentFocus();
-		if(!cf)
-			return;
-		let config = cf.closest(".tweet").dataset;
-		let todownload = [];
-		if(cf.matches("." + prefixed("-expanded")));
-			 todownload.push(cf.href);
-		todownload.push(...Array.from(cf.querySelectorAll("a." + prefixed("-orig-link"))).map((el) => el.href));
-
-		for(let link of todownload) {
-			downloadOrig(link, config);
-		}
-		prevent = true;
-	}
 
 	if(prevent)
 		e.preventDefault();
-}
-
-function downloadOrig(url, meta) {
-	fetch(url, {redirect: "follow", mode: "cors"}).then(response => response.blob()).then((blob) => {
-		const a = document.createElement("a");
-		const blobUri = URL.createObjectURL(blob);
-		a.href = blobUri;
-
-		let name = url.match(/^.*\/(.*?):orig$/)[1];
-		a.download = `@${meta.screenName} ${meta.tweetId} orig ${name}`;
-		const event = document.createEvent("MouseEvents");
-		event.initMouseEvent(
-			"click", true, false, window, 0, 0, 0, 0, 0,
-			false, false, false, false, 0, null
-		);
-		a.dispatchEvent(event);
-	});
 }
 
 function setFocus(focus, expect) {
