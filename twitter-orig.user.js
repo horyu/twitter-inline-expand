@@ -13,7 +13,30 @@
 
 'use strict';
 
+function init() {
+	const config = { subtree: true, childList: true };
+
+	let observer = new MutationObserver(mutationObserverCallback);
+	observer.observe(document.documentElement, config);
+
+	document.addEventListener("DOMContentLoaded", ready);
+	document.addEventListener("click", thumbToggleHandler, true);
+	document.addEventListener("keypress", keyboardNav);
+}
+
+//
+// Util
+//
+
 const cssPrefix = "mediatweaksuserscript";
+
+function prefixed(str) {
+	return cssPrefix + str;
+}
+
+//
+// mutationObserverCallback
+//
 
 // normal + mobile page + tweetdeck
 const TweetImageSelector = `
@@ -22,38 +45,23 @@ const TweetImageSelector = `
 	.js-stream-item-content a.js-media-image-link
 `;
 
-let alreadyVisited = new WeakSet();
-
-
-function prefixed(str) {
-	return cssPrefix + str;
-}
-
-
 function mutationObserverCallback(mutations) {
 	try {
 		for(let mutation of mutations) {
 			if(mutation.type != "childList")
-				continue;
+			continue;
 			for(let node of [mutation.target, ...mutation.addedNodes]) {
 				if(node.nodeType != Node.ELEMENT_NODE)
-					continue;
+				continue;
 
 				onAddedNode(node);
 				for(let subNode of node.querySelectorAll(TweetImageSelector))
-					onAddedNode(subNode);
+				onAddedNode(subNode);
 			}
 		}
 	} catch(e) {
 		console.log(e);
 	}
-}
-
-function visitOnce(element, func) {
-	if(alreadyVisited.has(element))
-		return;
-	alreadyVisited.add(element);
-	func();
 }
 
 function onAddedNode(node) {
@@ -64,15 +72,13 @@ function onAddedNode(node) {
 	}
 }
 
-function controlContainer(target) {
-	let div = target.querySelector(`.${cssPrefix}-thumbs-container`);
-	if(!div) {
-		div = document.createElement("div");
-		target.appendChild(div);
-		div.className = prefixed("-thumbs-container");
-	}
+let alreadyVisited = new WeakSet();
 
-	return div;
+function visitOnce(element, func) {
+	if(alreadyVisited.has(element))
+		return;
+	alreadyVisited.add(element);
+	func();
 }
 
 function addImageControls(tweetContainer, image) {
@@ -91,57 +97,20 @@ function addImageControls(tweetContainer, image) {
 	`);
 }
 
-let observer = null;
+function controlContainer(target) {
+	let div = target.querySelector(`.${cssPrefix}-thumbs-container`);
+	if(!div) {
+		div = document.createElement("div");
+		target.appendChild(div);
+		div.className = prefixed("-thumbs-container");
+	}
 
-function init() {
-	const config = { subtree: true, childList: true };
-
-	observer = new MutationObserver(mutationObserverCallback);
-	observer.observe(document.documentElement, config);
-
-	document.addEventListener("DOMContentLoaded", ready);
-	document.addEventListener("click", thumbToggleHandler, true);
-	document.addEventListener("keypress", keyboardNav);
-
+	return div;
 }
 
-function thumbToggleHandler(event) {
-	if(event.button != 0)
-		return;
-	let link = event.target.closest(`.${cssPrefix}-orig-link`); 
-	if(!link)
-		return;
-
-	event.stopImmediatePropagation();
-	event.preventDefault();
-
-	thumbToggle(link);
-}
-
-
-function thumbToggle(link) {
-	let img = link.querySelector("img");
-
-	return new Promise((res, rej) => {
-  	if(link.classList.contains(prefixed("-expanded"))) {
-			img.src = link.dataset[cssPrefix + "Small"];
-			link.classList.add(prefixed("-thumb"));
-			link.classList.remove(prefixed("-expan;ded"));
-			res(link);
-		} else {
-			let f = () => {
-				link.classList.add(prefixed("-expanded"));
-				link.classList.remove(prefixed("-thumb"));
-				img.removeEventListener("load", f);
-				res(link);
-			};
-
-			img.addEventListener("load", f);
-			img.src = link.href;
-		}
-
-	});
-}
+//
+// ready
+//
 
 const style = `
 .${cssPrefix}-thumbs-container {
@@ -202,6 +171,52 @@ function ready() {
 	document.querySelector(".ProfileSidebar").insertAdjacentHTML("beforeend", info);
 }
 
+//
+// thumbToggleHandler
+//
+
+function thumbToggleHandler(event) {
+	if(event.button != 0)
+		return;
+	let link = event.target.closest(`.${cssPrefix}-orig-link`);
+	if(!link)
+		return;
+
+	event.stopImmediatePropagation();
+	event.preventDefault();
+
+	thumbToggle(link);
+}
+
+
+function thumbToggle(link) {
+	let img = link.querySelector("img");
+
+	return new Promise((res, rej) => {
+  	if(link.classList.contains(prefixed("-expanded"))) {
+			img.src = link.dataset[cssPrefix + "Small"];
+			link.classList.add(prefixed("-thumb"));
+			link.classList.remove(prefixed("-expan;ded"));
+			res(link);
+		} else {
+			let f = () => {
+				link.classList.add(prefixed("-expanded"));
+				link.classList.remove(prefixed("-thumb"));
+				img.removeEventListener("load", f);
+				res(link);
+			};
+
+			img.addEventListener("load", f);
+			img.src = link.href;
+		}
+
+	});
+}
+
+//
+// keyboardNav
+//
+
 function keyboardNav(e) {
 	// skip keyboard events when in inputs
 	if (e.target.isContentEditable || ("selectionStart" in document.activeElement))
@@ -230,7 +245,7 @@ function keyboardNav(e) {
 		prevent = true;
 	}
 
-	if(focus) 
+	if(focus)
 		setFocus(focus);
 
 	if(prevent)
@@ -258,10 +273,6 @@ function currentFocus() {
 	return document.querySelector(`.${prefixed("-focused")}`);
 }
 
-function mod(n, m) {
-	return ((n % m) + m) % m;
-}
-
 function moveFocus(direction) {
 	// TODO: mobile, tweetdeck
 
@@ -277,5 +288,12 @@ function moveFocus(direction) {
 	return newFocus;
 }
 
+function mod(n, m) {
+	return ((n % m) + m) % m;
+}
+
+//
+// init()
+//
 
 init();
