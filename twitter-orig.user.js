@@ -48,8 +48,6 @@ const TweetImageSelector = `
 function mutationObserverCallback(mutations) {
 	try {
 		for(let mutation of mutations) {
-			if(mutation.type != "childList")
-				continue;
 			for(let node of [mutation.target, ...mutation.addedNodes]) {
 				if(node.nodeType != Node.ELEMENT_NODE)
 					continue;
