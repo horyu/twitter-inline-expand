@@ -3,9 +3,7 @@
 // @namespace   https://github.com/horyu
 // @description Inline-expansion of :orig (full-resolution) twitter images
 // @include     https://twitter.com/*
-// @include     https://mobile.twitter.com/*
-// @include     https://tweetdeck.twitter.com/*
-// @version     0.4.2
+// @version     0.4.3
 // @run-at      document-start
 // @noframes
 // @grant       none
@@ -38,12 +36,7 @@ function prefixed(str) {
 // mutationObserverCallback
 //
 
-// normal + mobile page + tweetdeck
-const TweetImageSelector = `
-	.tweet .js-adaptive-photo img ,
-	.Tweet .CroppedPhoto img ,
-	.js-stream-item-content a.js-media-image-link
-`;
+const TweetImageSelector = ".tweet .js-adaptive-photo img";
 
 function mutationObserverCallback(mutations) {
 	try {
@@ -65,7 +58,7 @@ function mutationObserverCallback(mutations) {
 function onAddedNode(node) {
 	if(node.matches(TweetImageSelector)) {
 		visitOnce(node, () => {
-			addImageControls(node.closest(".tweet, .Tweet, .js-stream-item-content"), node);
+			addImageControls(node.closest(".tweet"), node);
 		});
 	}
 }
@@ -147,10 +140,6 @@ a.${cssPrefix}-expanded img {
 	padding-left: 1em;
 }
 
-/* mobile */
-section.Timeline {
-	overflow: visible;
-}
 `;
 
 const info = `
@@ -272,8 +261,6 @@ function currentFocus() {
 }
 
 function moveFocus(direction) {
-	// TODO: mobile, tweetdeck
-
 	let focusable = Array.from(document.querySelectorAll(`.tweet.has-content, .${prefixed("-expanded")}`));
 	let idx = -1;
 	let cf = currentFocus();
