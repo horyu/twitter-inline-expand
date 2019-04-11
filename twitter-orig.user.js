@@ -181,7 +181,7 @@ function thumbToggle(link) {
 
 	return new Promise((res, rej) => {
 		if(link.classList.contains(prefixed("-expanded"))) {
-			img.src = link.dataset[cssPrefix + "Small"];
+			img.src = link.dataset[prefixed("Small")];
 			link.classList.add(prefixed("-thumb"));
 			link.classList.remove(prefixed("-expan;ded"));
 			res(link);
