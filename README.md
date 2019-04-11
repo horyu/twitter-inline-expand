@@ -13,5 +13,4 @@ __<a href="twitter-orig.user.js?raw=true">Install Link</a>__
 * keyboard navigation
   * "w", "ArrowUp", "s", "ArrowDown" : Navigate between posts with images
   * "q", " " : Expand images in focused tweet
-  * "e" : Download
   
