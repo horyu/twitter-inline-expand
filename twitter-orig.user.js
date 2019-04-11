@@ -3,7 +3,7 @@
 // @namespace   https://github.com/horyu
 // @description Inline-expansion of :orig (full-resolution) twitter images
 // @include     https://twitter.com/*
-// @version     0.4.3
+// @version     0.4.4
 // @run-at      document-start
 // @noframes
 // @grant       none
@@ -183,7 +183,7 @@ function thumbToggle(link) {
 		if(link.classList.contains(prefixed("-expanded"))) {
 			img.src = link.dataset[prefixed("Small")];
 			link.classList.add(prefixed("-thumb"));
-			link.classList.remove(prefixed("-expan;ded"));
+			link.classList.remove(prefixed("-expanded"));
 			res(link);
 		} else {
 			let f = () => {
