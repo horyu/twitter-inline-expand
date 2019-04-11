@@ -179,7 +179,7 @@ function thumbToggleHandler(event) {
 function thumbToggle(link) {
 	let img = link.querySelector("img");
 
-	return new Promise((res, rej) => {
+	new Promise((res, rej) => {
 		if(link.classList.contains(prefixed("-expanded"))) {
 			img.src = link.dataset[prefixed("Small")];
 			link.classList.add(prefixed("-thumb"));
