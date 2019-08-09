@@ -7,6 +7,11 @@ Waterfox + Tampermonkey でテストをしています。
 
 __<a href="twitter-orig.user.js?raw=true">Install Link</a>__
 
+## 追記（2019/08/09）
+
+このユーザースクリプトはReact版ではない古いTwitter用です。React版で画像を開きやすくするユーザースクリプトはこちらとなります。
+[Twitter Image Asist for React version](https://github.com/horyu/userscripts/raw/master/TwitterImageAssist.user.js)
+
 ## 現在の仕様
 * work on  `https://twitter.com/*`
 * inline-expansion of `:orig` full-resolution twitter images
